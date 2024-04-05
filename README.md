@@ -1,3 +1,14 @@
+* Качаем и ставим [ноду](https://nodejs.org/en/download/)
+* Клонируем репу
+* Заходим в папку с репой
+* npm i чтобы докачать зависимости (может занять пару минут)
+* npm run dev в терминале чтобы запустить сервер
+* http://localhost:3000/
+* ...
+* PROFIT!
+
+
+
 # Nuxt 3 Minimal Starter
 
 Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
