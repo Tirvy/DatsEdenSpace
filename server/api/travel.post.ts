@@ -21,49 +21,53 @@ export default defineEventHandler(async (event) => {
     const size = squareTheThing(item);
     return {
       id: key,
-      x: size.maxX,
-      y: size.maxY,
+      x: size.maxX + 1,
+      y: size.maxY + 1,
       mass: item.length,
       canPack: size.maxX <= cargoX && size.maxY <= cargoY,
     }
   });
-  const garbageBiggest = squaredGarbage.reduce((biggest: Garbage, current: Garbage) => {
-    if (!current.canPack) {
-      return biggest;
+
+  const garbageFiltered = squaredGarbage.filter(item => item.x <= 4 && item.y <= 4);
+  const garbageSorted = garbageFiltered.sort((a, b) => b.mass - a.mass);
+
+  const garbageOffsets = [[0, 0], [0, 4], [4, 0], [4, 4], [8, 0], [0, 8]];
+
+  const garbageCollection = garbageSorted.slice(0, 4).map((item, index) => {
+    const offset = garbageOffsets[index];
+    return {
+      id: item.id,
+      x: offset[0],
+      y: offset[1],
+      mass: item.mass,
+      canPack: item.canPack,
     }
-    if (current.mass > biggest.mass) {
-      return current;
-    }
-    return biggest;
-  }, { id: '', x: 0, y: 0, mass: 0, canPack: false });
-
-
-  console.log(dataTravel.planetGarbage, '\n', garbageBiggest.id, allGarbage[garbageBiggest.id]);
-
-  if (!garbageBiggest.canPack) {
-    return { dataTravel, dataCollect: null };
-  }
+  });
+  const garbageToSend = garbageCollection.reduce((acc: any, item) => {
+    acc[item.id] = allGarbage[item.id].map((coods: number[]) => {
+      return [coods[0] + item.x, coods[1] + item.y]
+    });
+    return acc;
+  }, {});
 
   let error: any = null;
   let dataCollect: any = null;
 
   try {
-    dataCollect = await fetch('https://datsedenspace.datsteam.dev/player/collect', {
+    dataCollect = await $fetch('https://datsedenspace.datsteam.dev/player/collect', {
       headers: {
         "X-Auth-Token": `${config.token}`
       },
       method: 'POST',
       body: {
-        garbage: {
-          [garbageBiggest.id]: allGarbage[garbageBiggest.id]
-        }
+        garbage: garbageToSend
       }
-    });
+    }).catch((err) => err.data);
   } catch (e) {
     error = e;
   }
 
-  return { dataTravel, dataCollect, error };
+  return { dataTravel, dataCollect, error, garbageToSend};
 })
 
 // -----------------------

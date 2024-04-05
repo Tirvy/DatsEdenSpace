@@ -20,7 +20,7 @@
         <v-row v-if="activePlanet">
           <v-col>
             <v-card style="width: 300px;">
-              <v-card-title :style="activePlanet.active ? 'background: green' : ''">
+              <v-card-title class="bg-green-lighten-4">
                 Мы на планете: {{ activePlanet.name }}
               </v-card-title>
               <v-card-actions>
@@ -35,12 +35,35 @@
               </v-card-actions>
             </v-card>
           </v-col>
+          <v-col>
+            <v-card>
+              <v-card-title class="bg-green-lighten-4">
+                Корабль
+              </v-card-title>
+              <v-card-text>
+                <v-list density="compact" nav>
+                  <v-list-item>
+                    Топлива потрачено: {{ ship.fuelUsed }}
+                  </v-list-item>
+                  <v-list-item>
+                    Размер трюма: {{ ship.capacityX }}x{{ ship.capacityY }}/{{ ship.capacityX * ship.capacityY }}
+                  </v-list-item>
+                  <v-list-item>
+                    Масса в трюме: {{ garbageMass }}
+                  </v-list-item>
+                  <v-list-item>
+                    <cargo :garbage="ship.garbage" :sizeX="ship.capacityX" :sizeY="ship.capacityY"></cargo>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+            </v-card>
+          </v-col>
         </v-row>
-
+        <v-divider/>
         <v-row dense>
           <v-col v-for="planet in planetsList">
             <v-card style="width: 300px;">
-              <v-card-title :style="planet.active ? 'background: green' : ''">
+              <v-card-title :style="planet.active ? 'background: green' : ''" class="bg-yellow-lighten-4">
                 {{ planet.name }}
               </v-card-title>
               <v-card-actions>
@@ -150,3 +173,6 @@ async function travelTo(planetName) {
 
 }
 </script>
+
+<style scoped>
+</style>
