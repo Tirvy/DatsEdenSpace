@@ -14,6 +14,9 @@ export default defineNuxtConfig({
   imports: {
     dirs: ['types/*.ts'],
   },
+  runtimeConfig: {
+    token: process.env.token,
+  },
   css: ['vuetify/lib/styles/main.sass'],
   build: {
     transpile: ['vuetify', 'tiptap-vuetify'],
