@@ -1,8 +1,15 @@
 export default defineEventHandler(async (event) => {
-  const runtimeConfig = useRuntimeConfig()
+  const config = useRuntimeConfig()
   // const body = await readBody(event);
   const query = getQuery(event);
 
+
+  // const repo = await $fetch('https://api.github.com/repos/nuxt/nuxt', {
+  //   headers: {
+  //     Authorization: `token ${config.token}`
+  //   }
+  // })
+
   
-  return runtimeConfig.token;
+  return config.token;
 })
