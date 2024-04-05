@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const body = await readBody(event);
@@ -10,6 +12,8 @@ export default defineEventHandler(async (event) => {
     method: 'POST',
     body
   });
+  logToFile('travel', dataTravel);
+
 
 
   const cargoX = +(query.x || 0);
@@ -53,6 +57,7 @@ export default defineEventHandler(async (event) => {
   let error: any = null;
   let dataCollect: any = null;
 
+  logToFile('garbageToSend', garbageToSend);
   try {
     dataCollect = await $fetch('https://datsedenspace.datsteam.dev/player/collect', {
       headers: {
@@ -66,8 +71,10 @@ export default defineEventHandler(async (event) => {
   } catch (e) {
     error = e;
   }
+  
+  logToFile('collect', dataCollect);
 
-  return { dataTravel, dataCollect, error, garbageToSend};
+  return { dataTravel, dataCollect, error, garbageToSend };
 })
 
 // -----------------------
@@ -95,4 +102,15 @@ function squareTheThing(garbage: [][]) {
     }
   }
   return { maxX, maxY };
+}
+
+function logToFile(type:string, data: any) {
+  try {
+    var datetime = new Date();
+
+    fs.writeFileSync('/Users/ernest/Documents/travel-collect.txt', `\n\n\n${datetime}:\n${type}\n${JSON.stringify(data)}`, { flag: 'a' });
+    // file written successfully
+  } catch (err) {
+    console.error(err);
+  }
 }

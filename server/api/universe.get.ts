@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   // const body = await readBody(event);
@@ -15,6 +17,15 @@ export default defineEventHandler(async (event) => {
   //   }
   // })
 
+  
+try {
+  var datetime = new Date();
+
+  fs.writeFileSync('/Users/ernest/Documents/universe.txt', `\n\n\n${datetime}:\n${JSON.stringify(data)}`, { flag: 'a' });
+  // file written successfully
+} catch (err) {
+  console.error(err);
+}
   
   return data;
 })

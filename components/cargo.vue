@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts" setup>
-const colors = ['red', 'green', 'blue', 'yellow', 'orange', 'purple'];
+const colors = ['red', 'green', 'blue', 'magenta', 'orange', 'purple'];
 
 const props = defineProps<{
   garbage: {[id: string]: number[][]},
