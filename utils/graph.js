@@ -1,4 +1,4 @@
-var Graph = (function (undefined) {
+const  Graph = (function (undefined) {
 
 	var extractKeys = function (obj) {
 		var keys = [], key;
@@ -142,3 +142,5 @@ var Graph = (function (undefined) {
 	return Graph;
 
 })();
+
+export default Graph;

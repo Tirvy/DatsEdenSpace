@@ -13,27 +13,11 @@
       <v-spacer></v-spacer>
     </v-app-bar>
 
-
-
     <v-main>
       <v-container fluid>
         <v-row v-if="activePlanet">
           <v-col>
-            <v-card style="width: 300px;">
-              <v-card-title class="bg-green-lighten-4">
-                Мы на планете: {{ activePlanet.name }}
-              </v-card-title>
-              <v-card-actions>
-                <v-list dense>
-                  <v-list-subheader>
-                    Куда летим?
-                  </v-list-subheader>
-                  <v-list-item v-for="route in activePlanet.routes" @click="travelTo(route.to)">
-                    {{ route.to }}: {{ route.cost }}
-                  </v-list-item>
-                </v-list>
-              </v-card-actions>
-            </v-card>
+            <space-navigation :activePlanet="activePlanet" :universe="universe"></space-navigation>
           </v-col>
           <v-col>
             <v-card>
@@ -59,21 +43,10 @@
             </v-card>
           </v-col>
         </v-row>
-        <v-divider/>
+        <v-divider />
         <v-row dense>
           <v-col v-for="planet in planetsList">
-            <v-card style="width: 300px;">
-              <v-card-title :style="planet.active ? 'background: green' : ''" class="bg-yellow-lighten-4">
-                {{ planet.name }}
-              </v-card-title>
-              <v-card-actions>
-                <v-list dense>
-                  <v-list-item v-for="route in planet.routes">
-                    {{ route.to }}: {{ route.cost }}
-                  </v-list-item>
-                </v-list>
-              </v-card-actions>
-            </v-card>
+            <planet-item :planet="planet"></planet-item>
           </v-col>
         </v-row>
 
@@ -97,6 +70,7 @@
 </template>
 
 <script setup>
+
 const roundName = ref('');
 const ship = ref({
   "fuelUsed": 0,
@@ -125,12 +99,6 @@ const planetsHashed = computed(() => {
       total[from] = {
         name: from,
         routes: [],
-        garbage: 0,
-        active: false
-      }
-
-      if (ship.value.planet?.name === from) {
-        total[from].active = true;
       }
     }
 
@@ -174,5 +142,4 @@ async function travelTo(planetName) {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

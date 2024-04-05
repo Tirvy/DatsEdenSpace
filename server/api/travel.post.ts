@@ -14,6 +14,10 @@ export default defineEventHandler(async (event) => {
   });
   logToFile('travel', dataTravel);
 
+  if (query.travel === 'true') {
+    return {dataTravel};
+  }
+
 
 
   const cargoX = +(query.x || 0);
@@ -71,7 +75,7 @@ export default defineEventHandler(async (event) => {
   } catch (e) {
     error = e;
   }
-  
+
   logToFile('collect', dataCollect);
 
   return { dataTravel, dataCollect, error, garbageToSend };
