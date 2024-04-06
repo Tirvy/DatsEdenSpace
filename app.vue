@@ -46,7 +46,7 @@
         </v-row>
         <v-row dense>
           <v-col>
-            <auto-router :planetsHashed="planetsHashed"></auto-router>
+            <auto-router :planetsHashed="planetsHashed" :planetsCleanHashed="cleanPlanets"></auto-router>
           </v-col>
         </v-row>
         <!-- <v-row dense>
@@ -94,6 +94,8 @@ const garbageMass = computed(() => {
   }, 0);
 })
 
+const cleanPlanets = {};
+
 const planetsHashed = computed(() => {
   return universe.value.reduce((total, item) => {
     const from = item[0];
@@ -138,10 +140,10 @@ const logs = ref([]);
 const logsReversed = computed(() => {
   const lcopy = [...logs.value];
   return lcopy.reverse();
-}) 
+})
 
 async function travelTo(route) {
-  const { dataTravel, dataCollect } = await $fetch('/api/travel', {
+  const { dataTravel, dataCollect, garbageToSend } = await $fetch('/api/travel', {
     method: 'POST',
     body: {
       planets: route
@@ -157,14 +159,19 @@ async function travelTo(route) {
   ship.value.fuelUsed += dataTravel.fuelDiff;
   ship.value.garbage = dataCollect?.garbage || dataTravel?.shipGarbage || {};
 
-  
+  const trashOnPlanet = Object.keys(dataTravel.planetGarbage).length;
+  if (trashOnPlanet > 0 &&
+    garbageToSend.length === trashOnPlanet + Object.keys(ship.value.garbage).length) {
+    cleanPlanets.value[ship.value.planet.name] = true;
+  }
+
 
   const garbageList = Object.values(dataTravel.planetGarbage);
   const avgMass = (garbageList.reduce(((acc, item) => acc + item.length), 0) / garbageList.length) || 0;
 
   logs.value.push({
     id: Date.now(),
-    text: 'Прилетели на '+ship.value.planet.name,
+    text: 'Прилетели на ' + ship.value.planet.name,
     garbage: dataTravel.planetGarbage,
     garbageStatistics: {
       number: garbageList.length,

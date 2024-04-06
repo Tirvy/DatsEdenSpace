@@ -1,7 +1,7 @@
 <template>
   <v-card style="width: 300px;">
     <v-card-title class="bg-green-lighten-4">
-      Мы на планете: {{ props.activePlanet.name }}
+      {{ props.activePlanet.name }}
     </v-card-title>
     <v-card-actions>
       <v-list dense class="w-100">

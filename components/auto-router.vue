@@ -6,7 +6,7 @@
     <v-card-text>
       <v-list>
         <v-list-item v-for="destination in destinations">
-          {{ destination }}
+          {{ destination }} {{ planetsCleanHashed[destination] ? '🟢' : '🔴' }}
         </v-list-item>
       </v-list>
     </v-card-text>
@@ -17,6 +17,7 @@
 
 const props = defineProps<{
   planetsHashed: {[name: string]: Planet},
+  planetsCleanHashed: {[name: string]: boolean}
 }>();
 
 const planetsList = computed(() => {
