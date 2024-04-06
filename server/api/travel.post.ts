@@ -22,20 +22,28 @@ export default defineEventHandler(async (event) => {
     neededLoad = Math.min(Math.ceil(loadMax * 0.05) + loadCurrent, loadMax);
   }
 
-  const dataTravel: any = await $fetch('https://datsedenspace.datsteam.dev/player/travel', {
-    headers: {
-      "X-Auth-Token": `${config.token}`
-    },
-    method: 'POST',
-    body
-  });
+  let error1: any = null;
+  let dataTravel: any = {};
+  await sleep(260);
+  try {
+    dataTravel= await $fetch('https://datsedenspace.datsteam.dev/player/travel', {
+      headers: {
+        "X-Auth-Token": `${config.token}`
+      },
+      method: 'POST',
+      body
+    });
+  } catch (e) {
+    error1 = e;
+  }
   logToFile('travel', dataTravel);
 
   if (query.travel === 'true') {
-    return { dataTravel };
+    return { dataTravel, dataCollect: {}, error: null, garbageToSend: {}, error1 };
   }
 
   const allGarbage = { ...dataTravel.planetGarbage, ...dataTravel.shipGarbage };
+  console.log(allGarbage);
   const squaredGarbage: Garbage[] = Object.keys(allGarbage).map(key => {
     const item = allGarbage[key];
     const size = squareTheThing(item);
@@ -52,22 +60,21 @@ export default defineEventHandler(async (event) => {
   });
 
 
+  const squaredGarbageSorted = squaredGarbage.sort((a, b) => a.mass - b.mass);
+
 
 
   const bin = new Bin(cargoX, cargoY);
-  let boxes = squaredGarbage.map(item => {
+  let boxes = squaredGarbageSorted.map(item => {
     return new Box(item.sizex, item.sizey);
   });
   let packer = new Packer([bin]);
   let packed_boxes = packer.pack(boxes);
-  console.log(boxes);
-  console.log(packed_boxes);
-  console.log(bin);
 
   //ts-ignore-next-line
   let garbageCollection: Garbage[] = boxes.map((box, index) => {
     if (box.packed) {
-      const garbage = squaredGarbage[index];
+      const garbage = squaredGarbageSorted[index];
       if (garbage.sizex !== box.width) {
         return {
           ...garbage,
@@ -117,6 +124,7 @@ export default defineEventHandler(async (event) => {
   let dataCollect: any = null;
 
   logToFile('garbageToSend', garbageToSend);
+  await sleep(260);
   try {
     dataCollect = await $fetch('https://datsedenspace.datsteam.dev/player/collect', {
       headers: {
@@ -133,7 +141,7 @@ export default defineEventHandler(async (event) => {
 
   logToFile('collect', dataCollect);
 
-  return { dataTravel, dataCollect, error, garbageToSend };
+  return { dataTravel, dataCollect, error, garbageToSend, error1 };
 })
 
 // -----------------------

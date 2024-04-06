@@ -1,12 +1,15 @@
 <template>
   <v-card> 
     <v-card-title>
-      Направления, которые надо протестить
+      Направления, которые надо протестить ({{ progress }})
     </v-card-title>
     <v-card-text>
       <v-list>
         <v-list-item v-for="destination in destinations">
           {{ destination }} {{ planetsCleanHashed[destination] ? '🟢' : '🔴' }}
+          <v-list-item-action>
+            <v-btn @click="startFromHere(destination)">Start from here</v-btn> 
+          </v-list-item-action>
         </v-list-item>
       </v-list>
     </v-card-text>
@@ -20,8 +23,18 @@ const props = defineProps<{
   planetsCleanHashed: {[name: string]: boolean}
 }>();
 
+const emit = defineEmits(['startFromHere']);
+
+function startFromHere(destination: string) {
+  emit('startFromHere', destination);
+}
+
 const planetsList = computed(() => {
   return Object.values(props.planetsHashed);
+});
+
+const progress = computed(() => {
+  return `${Object.values(props.planetsCleanHashed).length} / ${planetsList.value.length}`
 });
 
 const firstPlanet = 'Eden';
@@ -43,7 +56,6 @@ function interateRoute(planetName: string, destinations: string[]) {
     }
     interateRoute(routeTo, destinations)
   })
-
 }
 
 </script>

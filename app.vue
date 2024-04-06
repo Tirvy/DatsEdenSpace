@@ -9,6 +9,10 @@
           <v-btn @click="fetchUniverse">обновить</v-btn>
         </v-col>
       </v-row>
+      <div><v-btn @click="startAutoRouter(0)">start auto</v-btn></div>
+      <v-spacer></v-spacer>
+
+      <div><v-btn @click="stopAutoRouter">stop auto</v-btn></div>
       <div>DatsEdenSpace</div>
       <div><v-btn class="color-red" @click="reset">RESET</v-btn></div>
       <v-spacer></v-spacer>
@@ -46,7 +50,7 @@
         </v-row>
         <v-row dense>
           <v-col>
-            <auto-router :planetsHashed="planetsHashed" :planetsCleanHashed="cleanPlanets"></auto-router>
+            <auto-router :planetsHashed="planetsHashed" :planetsCleanHashed="cleanPlanets" @start-from-here="startAutoRouter"></auto-router>
           </v-col>
         </v-row>
         <!-- <v-row dense>
@@ -60,12 +64,15 @@
 
     <v-navigation-drawer location="right" :disable-resize-watcher="true" :permanent="true">
       <v-list density="compact" nav>
-        <v-list-item v-for="log in logsReversed">
+        <v-list-item v-for="log in logs">
           <v-list-item-title>
             {{ log.text }}
           </v-list-item-title>
           <v-list-item-subtitle>
-            {{ log.garbageStatistics.number }} мусора по {{ log.garbageStatistics.avgMass }}
+            П: {{ log.garbageStatistics.number }}, 
+            К: {{ log.garbageStatistics.withus }}, 
+            В: {{ log.garbageStatistics.taken }},
+            %: {{ log.garbageStatistics.percent }},
           </v-list-item-subtitle>
         </v-list-item>
       </v-list>
@@ -94,7 +101,7 @@ const garbageMass = computed(() => {
   }, 0);
 })
 
-const cleanPlanets = {};
+const cleanPlanets = ref({});
 
 const planetsHashed = computed(() => {
   return universe.value.reduce((total, item) => {
@@ -143,6 +150,8 @@ const logsReversed = computed(() => {
 })
 
 async function travelTo(route) {
+  let travel = (route[route.length - 1]) === 'Eden';
+
   const { dataTravel, dataCollect, garbageToSend } = await $fetch('/api/travel', {
     method: 'POST',
     body: {
@@ -151,22 +160,25 @@ async function travelTo(route) {
     query: {
       loadcurrent: garbageMass.value,
       x: ship.value.capacityX,
-      y: ship.value.capacityY
+      y: ship.value.capacityY,
+      travel
     }
   });
 
   ship.value.planet.name = route[route.length - 1] || ship.value.planet.name;
   ship.value.fuelUsed += dataTravel.fuelDiff;
-  ship.value.garbage = dataCollect?.garbage || dataTravel?.shipGarbage || {};
 
-  const trashOnPlanet = Object.keys(dataTravel.planetGarbage).length;
-  if (trashOnPlanet > 0 &&
-    garbageToSend.length === trashOnPlanet + Object.keys(ship.value.garbage).length) {
+  const trashOnPlanet = Object.keys(dataTravel.planetGarbage || {}).length;
+  const taken = Object.keys(garbageToSend || {}).length || 0;
+  const withus = Object.keys(ship.value.garbage).length;
+  if (taken === trashOnPlanet + withus) {
     cleanPlanets.value[ship.value.planet.name] = true;
   }
 
+  ship.value.garbage = dataCollect?.garbage || dataTravel?.shipGarbage || {};
 
-  const garbageList = Object.values(dataTravel.planetGarbage);
+
+  const garbageList = Object.values(dataTravel.planetGarbage || {});
   const avgMass = (garbageList.reduce(((acc, item) => acc + item.length), 0) / garbageList.length) || 0;
 
   logs.value.push({
@@ -174,12 +186,89 @@ async function travelTo(route) {
     text: 'Прилетели на ' + ship.value.planet.name,
     garbage: dataTravel.planetGarbage,
     garbageStatistics: {
-      number: garbageList.length,
-      avgMass: avgMass.toFixed(2),
+      number: trashOnPlanet,
+      taken,
+      withus,
+      percent: (garbageMass.value * 100 / (ship.value.capacityX * ship.value.capacityY)).toFixed(0)
     }
   })
-
 }
+
+
+// autorouter
+const firstPlanet = 'Eden';
+const destinations = computed(() => {
+  const destinations = [];
+  interateRoute(firstPlanet, destinations);
+  return destinations.slice(1);
+})
+
+const mustGoHome = computed(() => {
+  // return true;
+  return garbageMass.value >= ship.value.capacityX * ship.value.capacityY * 0.3;
+})
+
+function interateRoute(planetName, destinations) {
+  destinations.push(planetName);
+
+  const planet = planetsHashed.value[planetName];
+
+  planet?.routes.forEach(route => {
+    const routeTo = route.to;
+    if (destinations.includes(routeTo)) {
+      return;
+    }
+    interateRoute(routeTo, destinations)
+  })
+}
+
+const goOn = ref(false);
+
+async function startAutoRouter(initIndex) {
+  let index = 0;
+  if (initIndex) {
+    const newIndex = destinations.value.indexOf(initIndex);
+    if (+newIndex >= 0) {
+      index = newIndex;
+    }
+  }
+
+  goOn.value = true;
+
+  while (goOn.value) {
+    const destination = destinations.value[index];
+
+    if (!destination) {
+      console.log('break', index, destinations.value);
+      break;
+    }
+
+    if (destination === ship.value.planet.name) {
+      const routeBack = useGraph('route', [ship.value.planet.name, 'Eden']);
+      await travelTo(routeBack);
+    }
+
+    const route = useGraph('route', [ship.value.planet.name, destination]);
+    await travelTo(route);
+
+    if (cleanPlanets.value[destination]) {
+      index++;
+    }
+
+    if (mustGoHome.value || !cleanPlanets.value[destination]) {
+      const routeBack = useGraph('route', [ship.value.planet.name, 'Eden']);
+      await travelTo(routeBack);
+    }
+
+  }
+}
+
+function stopAutoRouter() {
+  goOn.value = false;
+}
+
+const sleep = (ms) =>
+  new Promise(resolve => setTimeout(resolve, ms));
 
 async function reset() {
   const data = await $fetch('/api/reset', {
