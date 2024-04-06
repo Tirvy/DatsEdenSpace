@@ -112,13 +112,11 @@ function addRoute(routeTo: string) {
     return
   }
 
-  const graph = new Graph(map.value);
-  newRoute.value = (graph.findShortestPath(props.activePlanet.name, routeTo) || []).slice(1);
+  newRoute.value = useGraph('route', [props.activePlanet.name, routeTo]) as string[];
 }
 
 const routeToEden = computed(() => {
-  const graph = new Graph(map.value);
-  return (graph.findShortestPath(props.activePlanet.name, 'Eden') || []).slice(1);
+  return useGraph('route', [props.activePlanet.name, 'Eden']) as string[];
 });
 
 function goRoute() {

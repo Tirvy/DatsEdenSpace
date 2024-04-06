@@ -35,7 +35,7 @@ function interateRoute(planetName: string, destinations: string[]) {
 
   const planet = props.planetsHashed[planetName];
 
-  planet.routes.forEach(route => {
+  planet?.routes.forEach(route => {
     const routeTo = route.to;
     if (destinations.includes(routeTo)) {
       return;

@@ -129,6 +129,7 @@ async function fetchUniverse() {
   roundName.value = ret.roundName;
   ship.value = ret.ship;
 
+  useGraph('recreate', planetsList.value);
 }
 fetchUniverse();
 
