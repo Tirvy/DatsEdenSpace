@@ -148,7 +148,8 @@ async function travelTo(route) {
     },
     query: {
       loadcurrent: garbageMass.value,
-      loadmax: ship.value.capacityX * ship.value.capacityY
+      x: ship.value.capacityX,
+      y: ship.value.capacityY
     }
   });
 

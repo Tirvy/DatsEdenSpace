@@ -73,6 +73,7 @@ const planetsHashed = computed(() => {
       total[from] = {
         name: from,
         routes: [],
+        isClean: false,
       }
     }
 

@@ -1,4 +1,9 @@
 import fs from 'node:fs';
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
+const BinPacking2D = require('binpackingjs').BP2D;
+const { Bin, Box, Packer } = BinPacking2D;
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
@@ -6,8 +11,11 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
 
   const loadCurrent = +(query.loadcurrent as string) || 0;
-  const loadMax = +(query.loadmax as string) || 0;
+  const cargoX = +(query.x || 0);
+  const cargoY = +(query.y || 0);
+  const loadMax = cargoX * cargoY;
   let neededLoad = 0;
+
   if (loadCurrent === 0) {
     neededLoad = Math.ceil(loadMax * 0.3);
   } else {
@@ -24,13 +32,8 @@ export default defineEventHandler(async (event) => {
   logToFile('travel', dataTravel);
 
   if (query.travel === 'true') {
-    return {dataTravel};
+    return { dataTravel };
   }
-
-
-
-  const cargoX = +(query.x || 0);
-  const cargoY = +(query.y || 0);
 
   const allGarbage = { ...dataTravel.planetGarbage, ...dataTravel.shipGarbage };
   const squaredGarbage: Garbage[] = Object.keys(allGarbage).map(key => {
@@ -38,32 +41,75 @@ export default defineEventHandler(async (event) => {
     const size = squareTheThing(item);
     return {
       id: key,
-      x: size.maxX + 1,
-      y: size.maxY + 1,
+      sizex: size.maxX + 1,
+      sizey: size.maxY + 1,
+      x: 0,
+      y: 0,
       mass: item.length,
       canPack: size.maxX <= cargoX && size.maxY <= cargoY,
+      rotate: false,
     }
   });
 
-  const garbageFiltered = squaredGarbage.filter(item => item.x <= 4 && item.y <= 4);
-  const garbageSorted = garbageFiltered.sort((a, b) => b.mass - a.mass);
 
-  const garbageOffsets = [[0, 0], [0, 4], [4, 0], [4, 4], [8, 0], [0, 8]];
 
-  const garbageCollection = garbageSorted.slice(0, 4).map((item, index) => {
-    const offset = garbageOffsets[index];
-    return {
-      id: item.id,
-      x: offset[0],
-      y: offset[1],
-      mass: item.mass,
-      canPack: item.canPack,
-    }
+
+  const bin = new Bin(cargoX, cargoY);
+  let boxes = squaredGarbage.map(item => {
+    return new Box(item.sizex, item.sizey);
   });
+  let packer = new Packer([bin]);
+  let packed_boxes = packer.pack(boxes);
+  console.log(boxes);
+  console.log(packed_boxes);
+  console.log(bin);
+
+  //ts-ignore-next-line
+  let garbageCollection: Garbage[] = boxes.map((box, index) => {
+    if (box.packed) {
+      const garbage = squaredGarbage[index];
+      if (garbage.sizex !== box.width) {
+        return {
+          ...garbage,
+          x: box.x,
+          y: box.y,
+          rotate: true,
+        }
+      }
+      return {
+        ...garbage,
+        x: box.x,
+        y: box.y,
+      }
+    }
+    return null
+  }).filter(item => item !== null);
+
+
+  // const garbageFiltered = squaredGarbage.filter(item => item.x <= 4 && item.y <= 4);
+  // const garbageSorted = garbageFiltered.sort((a, b) => a.mass - b.mass);
+  // const garbageOffsets = [[0, 0], [0, 4], [4, 0], [4, 4], [8, 0], [0, 8]];
+  // const garbageCollection = garbageSorted.slice(0, 4).map((item, index) => {
+  //   const offset = garbageOffsets[index];
+  //   return {
+  //     id: item.id,
+  //     x: offset[0],
+  //     y: offset[1],
+  //     mass: item.mass,
+  //     canPack: item.canPack,
+  //   }
+  // });
+
   const garbageToSend = garbageCollection.reduce((acc: any, item) => {
-    acc[item.id] = allGarbage[item.id].map((coods: number[]) => {
-      return [coods[0] + item.x, coods[1] + item.y]
-    });
+    if (!item.rotate) {
+      acc[item.id] = allGarbage[item.id].map((coods: number[]) => {
+        return [coods[0] + item.x, coods[1] + item.y]
+      });
+    } else {
+      acc[item.id] = allGarbage[item.id].map((coods: number[]) => {
+        return [item.sizey - 1 - coods[1] + item.x, coods[0] + item.y]
+      });
+    }
     return acc;
   }, {});
 
@@ -94,30 +140,27 @@ export default defineEventHandler(async (event) => {
 
 type Garbage = {
   id: string,
+  sizex: number,
+  sizey: number,
   x: number,
   y: number,
   mass: number,
   canPack: boolean,
+  rotate: boolean,
 }
 
 
 function squareTheThing(garbage: [][]) {
   let maxX = 0;
   let maxY = 0;
-  for (const row of garbage) {
-    for (const cell of row) {
-      if (cell[0] > maxX) {
-        maxX = cell[0];
-      }
-      if (cell[1] > maxY) {
-        maxY = cell[1];
-      }
-    }
-  }
+  garbage.forEach(cell => {
+    maxX = Math.max(maxX, +cell[0] || 0);
+    maxY = Math.max(maxY, +cell[1] || 0);
+  });
   return { maxX, maxY };
 }
 
-function logToFile(type:string, data: any) {
+function logToFile(type: string, data: any) {
   try {
     var datetime = new Date();
 
