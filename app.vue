@@ -6,10 +6,11 @@
       </template>
       <v-row>
         <v-col>
-          <v-btn @click="fetchUnivers">обновить</v-btn>
+          <v-btn @click="fetchUniverse">обновить</v-btn>
         </v-col>
       </v-row>
       <div>DatsEdenSpace</div>
+      <div><v-btn class="color-red" @click="reset">RESET</v-btn></div>
       <v-spacer></v-spacer>
     </v-app-bar>
 
@@ -17,7 +18,7 @@
       <v-container fluid>
         <v-row v-if="activePlanet">
           <v-col>
-            <space-navigation :activePlanet="activePlanet" :universe="universe"></space-navigation>
+            <space-navigation :activePlanet="activePlanet" :universe="universe" @travel="travelTo"></space-navigation>
           </v-col>
           <v-col>
             <v-card>
@@ -43,26 +44,29 @@
             </v-card>
           </v-col>
         </v-row>
-        <v-divider />
         <v-row dense>
+          <v-col>
+            <auto-router :planetsHashed="planetsHashed"></auto-router>
+          </v-col>
+        </v-row>
+        <!-- <v-row dense>
           <v-col v-for="planet in planetsList">
             <planet-item :planet="planet"></planet-item>
           </v-col>
-        </v-row>
+        </v-row> -->
 
       </v-container>
     </v-main>
 
     <v-navigation-drawer location="right" :disable-resize-watcher="true" :permanent="true">
       <v-list density="compact" nav>
-        <v-list-item>
-          Топлива потрачено: {{ ship.fuelUsed }}
-        </v-list-item>
-        <v-list-item>
-          Размер трюма: {{ ship.capacityX }}x{{ ship.capacityY }}/{{ ship.capacityX * ship.capacityY }}
-        </v-list-item>
-        <v-list-item>
-          Масса в трюме: {{ garbageMass }}
+        <v-list-item v-for="log in logsReversed">
+          <v-list-item-title>
+            {{ log.text }}
+          </v-list-item-title>
+          <v-list-item-subtitle>
+            {{ log.garbageStatistics.number }} мусора по {{ log.garbageStatistics.avgMass }}
+          </v-list-item-subtitle>
         </v-list-item>
       </v-list>
     </v-navigation-drawer>
@@ -99,6 +103,7 @@ const planetsHashed = computed(() => {
       total[from] = {
         name: from,
         routes: [],
+        isClean: false,
       }
     }
 
@@ -118,27 +123,60 @@ const activePlanet = computed(() => {
   return planetsHashed.value[ship.value.planet.name];
 });
 
-async function fetchUnivers() {
+async function fetchUniverse() {
   const ret = await $fetch('/api/universe');
   universe.value = ret.universe;
   roundName.value = ret.roundName;
   ship.value = ret.ship;
 
 }
-fetchUnivers();
+fetchUniverse();
 
-async function travelTo(planetName) {
+const logs = ref([]);
+
+const logsReversed = computed(() => {
+  const lcopy = [...logs.value];
+  return lcopy.reverse();
+}) 
+
+async function travelTo(route) {
   const { dataTravel, dataCollect } = await $fetch('/api/travel', {
     method: 'POST',
     body: {
-      planets: [planetName]
+      planets: route
+    },
+    query: {
+      loadcurrent: garbageMass.value,
+      loadmax: ship.value.capacityX * ship.value.capacityY
     }
   });
 
-  ship.value.planet.name = planetName;
+  ship.value.planet.name = route[route.length - 1] || ship.value.planet.name;
   ship.value.fuelUsed += dataTravel.fuelDiff;
   ship.value.garbage = dataCollect?.garbage || dataTravel?.shipGarbage || {};
 
+  
+
+  const garbageList = Object.values(dataTravel.planetGarbage);
+  const avgMass = (garbageList.reduce(((acc, item) => acc + item.length), 0) / garbageList.length) || 0;
+
+  logs.value.push({
+    id: Date.now(),
+    text: 'Прилетели на '+ship.value.planet.name,
+    garbage: dataTravel.planetGarbage,
+    garbageStatistics: {
+      number: garbageList.length,
+      avgMass: avgMass.toFixed(2),
+    }
+  })
+
+}
+
+async function reset() {
+  const data = await $fetch('/api/reset', {
+    method: 'DELETE',
+  });
+  fetchUniverse();
 }
 </script>
 

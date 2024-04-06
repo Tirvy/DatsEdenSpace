@@ -5,6 +5,15 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event);
   const query = getQuery(event);
 
+  const loadCurrent = +(query.loadcurrent as string) || 0;
+  const loadMax = +(query.loadmax as string) || 0;
+  let neededLoad = 0;
+  if (loadCurrent === 0) {
+    neededLoad = Math.ceil(loadMax * 0.3);
+  } else {
+    neededLoad = Math.min(Math.ceil(loadMax * 0.05) + loadCurrent, loadMax);
+  }
+
   const dataTravel: any = await $fetch('https://datsedenspace.datsteam.dev/player/travel', {
     headers: {
       "X-Auth-Token": `${config.token}`
@@ -118,3 +127,6 @@ function logToFile(type:string, data: any) {
     console.error(err);
   }
 }
+
+const sleep = (ms: number) =>
+  new Promise(resolve => setTimeout(resolve, ms));

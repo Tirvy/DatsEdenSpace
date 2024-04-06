@@ -4,7 +4,7 @@
       Мы на планете: {{ props.activePlanet.name }}
     </v-card-title>
     <v-card-actions>
-      <v-list dense>
+      <v-list dense class="w-100">
         <v-list-subheader>
           Куда летим?
         </v-list-subheader>
@@ -13,6 +13,18 @@
           <template v-slot:append>
             <v-btn color="grey-darken-2" variant="text" @click="travelTo(route.to)">go</v-btn>
           </template>
+        </v-list-item>
+        <v-divider></v-divider>
+        <v-list-item>
+          <v-list-item-title>
+            Eden
+          </v-list-item-title>
+          <v-list-item-subtitle>
+            {{ routeToEden }}
+          </v-list-item-subtitle>
+          <v-list-item-action>
+            <v-btn color="grey-darken-2" variant="text" @click="travelToEden()">go</v-btn>
+          </v-list-item-action>
         </v-list-item>
         <v-divider></v-divider>
         <v-list-subheader class="w-100">
@@ -45,6 +57,8 @@ const props = defineProps<{
   activePlanet: Planet,
   universe: any,
 }>();
+
+const emit=defineEmits(['travel'])
 
 const routeTo = ref('');
 
@@ -99,31 +113,24 @@ function addRoute(routeTo: string) {
   }
 
   const graph = new Graph(map.value);
-  newRoute.value = graph.findShortestPath(props.activePlanet.name, routeTo) || [];
-  console.log(newRoute.value);
+  newRoute.value = (graph.findShortestPath(props.activePlanet.name, routeTo) || []).slice(1);
 }
+
+const routeToEden = computed(() => {
+  const graph = new Graph(map.value);
+  return (graph.findShortestPath(props.activePlanet.name, 'Eden') || []).slice(1);
+});
 
 function goRoute() {
-  $fetch('/api/travel', {
-    method: 'POST',
-    body: {
-      planets: newRoute.value.slice(1)
-    },
-    query: {
-      travel: 1,
-    }
-  });
+  emit('travel', newRoute.value);
 }
 
-
 async function travelTo(planetName: string) {
-  $fetch('/api/travel', {
-    method: 'POST',
-    body: {
-      planets: [planetName]
-    }
-  });
+  emit('travel', [planetName]);
+}
 
+async function travelToEden() {
+  emit('travel', routeToEden.value);
 }
 
 

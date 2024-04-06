@@ -25,4 +25,5 @@ export type Route = {
 export type Planet = {
   name: string,
   routes: Route[],
+  isClean: boolean,
 }
